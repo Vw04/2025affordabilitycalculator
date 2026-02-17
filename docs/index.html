@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homium Housing Research Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1 class="logo">Homium</h1>
+        <p class="logo-sub">Housing Research</p>
+      </div>
+      
+      <div class="search-section">
+        <label class="search-label">Search ZIP Code</label>
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Enter ZIP code (e.g. 78701)" maxlength="5" autocomplete="off">
+          <button id="searchBtn" class="search-btn">Search</button>
+        </div>
+        <div id="searchResults" class="search-results hidden"></div>
+      </div>
+      
+      <div class="compare-section">
+        <h3>Compare ZIPs</h3>
+        <div id="compareList" class="compare-list"></div>
+        <button id="addCompareBtn" class="btn-outline btn-sm">+ Add Current ZIP</button>
+        <button id="compareBtn" class="btn-primary btn-sm hidden">Compare Selected</button>
+      </div>
+      
+      <div class="sidebar-footer">
+        <button id="exportCsvBtn" class="btn-outline btn-sm">📥 Export CSV</button>
+        <button id="qualityBtn" class="btn-outline btn-sm">📊 Data Quality</button>
+      </div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Header -->
+      <header class="main-header">
+        <div id="locationTitle">
+          <h2 id="mainTitle">US Housing Statistics</h2>
+          <p id="mainSubtitle" class="subtitle">Search a ZIP code to explore housing data</p>
+        </div>
+        <div class="data-badge">
+          <span class="dot"></span>
+          66,362 ZIP codes · Census ACS 2023
+        </div>
+      </header>
+      
+      <!-- Stats Cards -->
+      <div id="statsGrid" class="stats-grid">
+        <div class="stat-card placeholder">
+          <div class="stat-label">Homeownership Rate</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card placeholder">
+          <div class="stat-label">Median Home Price</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card placeholder">
+          <div class="stat-label">Median Rent</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card placeholder">
+          <div class="stat-label">Median Income</div>
+          <div class="stat-value">—</div>
+        </div>
+      </div>
+      
+      <!-- Detail Cards Row 2 -->
+      <div id="detailGrid" class="stats-grid stats-grid-6 hidden">
+        <div class="stat-card small" id="cardPopulation">
+          <div class="stat-label">Population</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card small" id="cardAge">
+          <div class="stat-label">Median Age</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card small" id="cardVacancy">
+          <div class="stat-label">Vacancy Rate</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card small" id="cardOwnerUnits">
+          <div class="stat-label">Owner Units</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card small" id="cardRenterUnits">
+          <div class="stat-label">Renter Units</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card small" id="cardTotalUnits">
+          <div class="stat-label">Total Units</div>
+          <div class="stat-value">—</div>
+        </div>
+      </div>
+      
+      <!-- Redfin Market Data -->
+      <div id="redfinSection" class="section hidden">
+        <h3 class="section-title">🏠 Redfin Market Data</h3>
+        <div class="stats-grid stats-grid-4" id="redfinGrid"></div>
+      </div>
+      
+      <!-- National Comparison -->
+      <div id="comparisonSection" class="section hidden">
+        <h3 class="section-title">📊 vs. National Average</h3>
+        <div id="comparisonBars" class="comparison-bars"></div>
+      </div>
+      
+      <!-- Comparison Table -->
+      <div id="compareSection" class="section hidden">
+        <h3 class="section-title">📋 ZIP Comparison</h3>
+        <div class="table-wrap">
+          <table id="compareTable" class="compare-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Data Quality Modal -->
+      <div id="qualityModal" class="modal hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Data Quality Report</h3>
+            <button class="modal-close" onclick="document.getElementById('qualityModal').classList.add('hidden')">&times;</button>
+          </div>
+          <div id="qualityBody" class="modal-body"></div>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <footer class="main-footer">
+        <p>Data: US Census Bureau ACS 5-Year Estimates (2023) + Redfin Market Data</p>
+        <p>Built by <a href="https://homium.com">Homium</a> · Powered by EIR-OS</p>
+      </footer>
+    </main>
+  </div>
+  
+  <script src="js/app.js"></script>
+</body>
+</html>
