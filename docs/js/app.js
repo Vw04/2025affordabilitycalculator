@@ -30,7 +30,6 @@ const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
 const searchResults = document.getElementById('searchResults');
 const statsGrid = document.getElementById('statsGrid');
-const detailGrid = document.getElementById('detailGrid');
 const mainTitle = document.getElementById('mainTitle');
 const mainSubtitle = document.getElementById('mainSubtitle');
 const compareList = document.getElementById('compareList');
@@ -128,7 +127,6 @@ async function loadZip(zipCode) {
     currentData = data.data;
     renderZipStats(data.data);
     renderComparison(data.data);
-    renderRedfin(data.data);
     
     const location = [data.data.county_name, data.data.state_abbr].filter(Boolean).join(', ');
     mainTitle.textContent = `ZIP ${zipCode}` + (location ? ` — ${location}` : '');
@@ -143,9 +141,6 @@ async function loadZip(zipCode) {
     if (data.data.county_name && data.data.state_abbr) crumbs.push(`<a onclick="loadCounty('${encodeURIComponent(data.data.county_name)}', '${data.data.state_abbr}')">${data.data.county_name}</a>`);
     
     mainSubtitle.innerHTML = (crumbs.length ? crumbs.join(' › ') + ' · ' : '') + parts.join(' · ');
-    
-    // Show detail grid, hide county ZIP list
-    detailGrid.classList.remove('hidden');
     
   } catch (e) {
     mainTitle.textContent = 'ZIP Not Found';
@@ -173,8 +168,6 @@ async function loadState(stateAbbr) {
     renderAggregateStats(d);
     
     // Hide ZIP-specific sections
-    detailGrid.classList.add('hidden');
-    document.getElementById('redfinSection').classList.add('hidden');
     document.getElementById('comparisonSection').classList.add('hidden');
     
     // Load counties
@@ -206,10 +199,6 @@ async function loadCounty(countyName, stateAbbr) {
     // Load ZIPs in county
     await loadZipList(stateAbbr, decodeURIComponent(d.county_name));
     
-    // Hide ZIP-specific sections
-    detailGrid.classList.add('hidden');
-    document.getElementById('redfinSection').classList.add('hidden');
-    
   } catch (e) {
     mainTitle.textContent = 'County Not Found';
     mainSubtitle.textContent = '';
@@ -219,7 +208,7 @@ async function loadCounty(countyName, stateAbbr) {
 // ── Render Aggregate Stats (state/county) ──
 function renderAggregateStats(d) {
   const cards = [
-    { label: 'Avg Homeownership', value: fmt.pct(d.avg_homeownership) },
+    { label: 'Total Population', value: fmt.compact(d.total_population) },
     { label: 'Avg Home Price', value: fmt.currency(Math.round(d.avg_home_price)) },
     { label: 'Avg Rent', value: fmt.currency(Math.round(d.avg_rent)) },
     { label: 'Avg Income', value: fmt.currency(Math.round(d.avg_income)) },
@@ -236,12 +225,12 @@ function renderAggregateStats(d) {
 // ── Render ZIP Stats Cards ──
 function renderZipStats(d) {
   const cards = [
-    { label: 'Homeownership Rate', value: fmt.pct(d.homeownership_rate), compare: d.comparison ? `Nat'l avg: ${d.comparison.national_avg_homeownership}%` : null },
+    { label: 'Population', value: fmt.num(d.population) },
     { label: 'Median Home Price', value: fmt.currency(d.median_home_price), compare: d.comparison ? `Nat'l avg: ${fmt.currency(d.comparison.national_avg_home_price)}` : null },
     { label: 'Median Rent', value: fmt.currency(d.median_rent), compare: d.comparison ? `Nat'l avg: ${fmt.currency(d.comparison.national_avg_rent)}` : null },
     { label: 'Median Income', value: fmt.currency(d.median_household_income), compare: d.comparison ? `Nat'l avg: ${fmt.currency(d.comparison.national_avg_income)}` : null },
   ];
-  
+
   statsGrid.innerHTML = cards.map(c => `
     <div class="stat-card">
       <div class="stat-label">${c.label}</div>
@@ -249,18 +238,6 @@ function renderZipStats(d) {
       ${c.compare ? `<div class="stat-compare">${c.compare}</div>` : ''}
     </div>
   `).join('');
-  
-  const setCard = (id, val) => {
-    const el = document.querySelector(`#${id} .stat-value`);
-    if (el) el.textContent = val;
-  };
-  setCard('cardPopulation', fmt.num(d.population));
-  setCard('cardAge', d.median_age != null ? parseFloat(d.median_age).toFixed(1) : '—');
-  setCard('cardVacancy', fmt.pct(d.vacancy_rate));
-  setCard('cardOwnerUnits', fmt.compact(d.owner_occupied_units));
-  setCard('cardRenterUnits', fmt.compact(d.renter_occupied_units));
-  setCard('cardTotalUnits', fmt.compact(d.total_housing_units));
-  detailGrid.classList.remove('hidden');
 }
 
 // ── Render National Comparison Bars ──
@@ -269,13 +246,11 @@ function renderComparison(d) {
   
   const comp = d.comparison;
   const isAggregate = currentView !== 'zip';
-  const homeVal = isAggregate ? parseFloat(d.avg_homeownership) : parseFloat(d.homeownership_rate);
   const priceVal = isAggregate ? Number(d.avg_home_price) : Number(d.median_home_price);
   const rentVal = isAggregate ? Number(d.avg_rent) : Number(d.median_rent);
   const incomeVal = isAggregate ? Number(d.avg_income) : Number(d.median_household_income);
-  
+
   const bars = [
-    { label: 'Homeownership', zip: homeVal, natl: parseFloat(comp.national_avg_homeownership), unit: '%', max: 100 },
     { label: 'Home Price', zip: priceVal, natl: Number(comp.national_avg_home_price), unit: '$', max: Math.max(priceVal, Number(comp.national_avg_home_price)) * 1.2 },
     { label: 'Rent', zip: rentVal, natl: Number(comp.national_avg_rent), unit: '$', max: Math.max(rentVal, Number(comp.national_avg_rent)) * 1.2 },
     { label: 'Income', zip: incomeVal, natl: Number(comp.national_avg_income), unit: '$', max: Math.max(incomeVal, Number(comp.national_avg_income)) * 1.2 },
@@ -395,7 +370,6 @@ function renderCountyGrid(counties, stateAbbr) {
             <th>ZIPs</th>
             <th>Population</th>
             <th>Avg Home Price</th>
-            <th>Homeownership</th>
           </tr>
         </thead>
         <tbody>
@@ -405,7 +379,6 @@ function renderCountyGrid(counties, stateAbbr) {
               <td class="mono">${c.zip_count}</td>
               <td class="mono">${fmt.compact(c.total_population)}</td>
               <td class="mono">${fmt.currency(Math.round(c.avg_home_price))}</td>
-              <td class="mono">${fmt.pct(c.avg_homeownership)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -438,7 +411,6 @@ async function loadZipList(stateAbbr, countyName) {
               <th>Population</th>
               <th>Home Price</th>
               <th>Rent</th>
-              <th>Homeownership</th>
               <th>Income</th>
             </tr>
           </thead>
@@ -449,7 +421,6 @@ async function loadZipList(stateAbbr, countyName) {
                 <td class="mono">${fmt.compact(z.population)}</td>
                 <td class="mono">${fmt.currency(z.median_home_price)}</td>
                 <td class="mono">${fmt.currency(z.median_rent)}</td>
-                <td class="mono">${fmt.pct(z.homeownership_rate)}</td>
                 <td class="mono">${fmt.currency(z.median_household_income)}</td>
               </tr>
             `).join('')}
@@ -519,12 +490,10 @@ function renderCompareTable(rows) {
   });
   
   const metrics = [
-    { key: 'homeownership_rate', label: 'Homeownership %', fmt: fmt.pct },
+    { key: 'population', label: 'Population', fmt: fmt.num },
     { key: 'median_home_price', label: 'Home Price', fmt: fmt.currency },
     { key: 'median_rent', label: 'Rent', fmt: fmt.currency },
     { key: 'median_household_income', label: 'Income', fmt: fmt.currency },
-    { key: 'population', label: 'Population', fmt: fmt.num },
-    { key: 'vacancy_rate', label: 'Vacancy %', fmt: fmt.pct },
   ];
   
   table.querySelector('thead').innerHTML = `
