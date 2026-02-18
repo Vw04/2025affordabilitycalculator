@@ -5,7 +5,7 @@
 // API base URL — change for production
 const API_BASE = window.location.hostname === 'localhost' 
   ? 'http://localhost:3000' 
-  : 'https://homium-housing-api.onrender.com'; // Will be set on deployment
+  : 'https://unabashed-empathy.onrender.com';
 
 // State
 let currentData = null;
