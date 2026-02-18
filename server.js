@@ -22,6 +22,50 @@ const pool = new Pool({
 const ok = (data, meta = {}) => ({ success: true, data, meta: { timestamp: new Date().toISOString(), ...meta } });
 const err = (msg, code = 400) => ({ success: false, error: msg, code });
 
+// Classify a ZIP code that's not in our Census ZCTA database
+function classifyMissingZip(zipCode) {
+  const z = parseInt(zipCode, 10);
+
+  // Military APO/FPO/DPO — routed overseas, no Census jurisdiction
+  if (
+    (z >= 9000 && z <= 9499)   || // APO AE (Europe/Middle East)
+    (z >= 34000 && z <= 34099) || // APO AE (alternate)
+    (z >= 96200 && z <= 96699)    // APO/FPO AP (Pacific)
+  ) {
+    return {
+      zip_type: 'military',
+      explanation: 'Military APO/FPO/DPO ZIP — routes mail to overseas military bases. Census has no residential data for these addresses.',
+      suggestion: null,
+    };
+  }
+
+  // US Territories (not Puerto Rico — PR is in our DB)
+  if (
+    (z >= 96799 && z <= 96799) || // American Samoa (96799)
+    (z >= 96910 && z <= 96932) || // Guam
+    (z >= 801   && z <= 851)      // US Virgin Islands (00801–00851)
+  ) {
+    return {
+      zip_type: 'us_territory',
+      explanation: 'US Territory ZIP (Guam, USVI, or American Samoa). Census ACS does not publish ZIP-level data for these territories.',
+      suggestion: null,
+    };
+  }
+
+  // Everything else not in our DB: PO Box-only, unique-institution, or post-2020 new ZIP
+  return {
+    zip_type: 'non_residential_or_unknown',
+    explanation: [
+      'This ZIP code has no Census residential data.',
+      'Common reasons: (1) PO Box-only ZIP — no one lives there;',
+      '(2) Unique-institution ZIP assigned to a single organization (hospital, university, government building);',
+      '(3) ZIP assigned after January 2020 not yet in Census 5-Year ACS data.',
+      'None of these categories have homeownership, income, or rent data available from any public source.',
+    ].join(' '),
+    suggestion: 'Try a nearby residential ZIP code, or use the /search endpoint to find ZIPs by city or county name.',
+  };
+}
+
 // ── Endpoints ──
 
 // 1. GET /api/v1/research/stats/zip/:zipCode
@@ -32,7 +76,20 @@ app.get('/api/v1/research/stats/zip/:zipCode', async (req, res) => {
   const start = Date.now();
   try {
     const result = await pool.query('SELECT * FROM housing_stats WHERE zip_code = $1', [zipCode]);
-    if (result.rows.length === 0) return res.status(404).json(err('ZIP code not found'));
+    if (result.rows.length === 0) {
+      const classification = classifyMissingZip(zipCode);
+      return res.status(404).json({
+        success: false,
+        error: `No residential housing data available for ZIP code ${zipCode}`,
+        zip_code: zipCode,
+        ...classification,
+        code: 404,
+        data_sources_checked: ['Census ACS 5-Year 2023 (33,181 ZCTAs)'],
+        // HUD USPS Crosswalk API could identify this ZIP's county for county-level fallback.
+        // Requires HUD API token: https://www.huduser.gov/apps/public/uspscrosswalk/register
+        hud_fallback_available: false,
+      });
+    }
     
     const row = result.rows[0];
     
